@@ -1,10 +1,12 @@
-name: Java CI with Maven
+name: Comprehensive Security Pipeline
 
 on:
   push:
     branches: ["master"]
   pull_request:
     branches: ["master"]
+  schedule:
+    - cron: "0 2 * * 1" # Weekly scan on Monday 2 AM
 
 jobs:
   test:
@@ -12,14 +14,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: "17"
+          java-version: "21"
           distribution: "temurin"
           cache: maven
       - name: Perform the Unit Test Cases
         run: mvn -B test
+
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            code:
+              - 'src/**'
+              - 'pom.xml'
+              - 'dockerfile'
 
   security:
     needs: test
@@ -70,4 +87,3 @@ jobs:
         if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master'
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          
